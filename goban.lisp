@@ -49,7 +49,7 @@
 (defun x->h (x &optional scale (offset 0))
   (let ((scale (or scale *scale*))
         (offset-x (- x offset)))
-    (round (/ offset-x scale))))
+    (floor offset-x scale)))
 
 (defun h->x (h &optional scale (offset 0))
   (let ((scale (or scale *scale*)))
@@ -72,13 +72,13 @@
 (defun draw-piece (piece h v scale)
   (sdl:draw-filled-circle (sdl:point :x (h->x h scale)
                                      :y (h->x v scale))
-                          (round (/ scale 2))
+                          (floor scale 2)
                           :color (piece->color piece)))
 
 (defun draw-lines ()
   (dotimes (i *board-size*)
     ;; Vertical lines:
-    (sdl:draw-line (sdl:point :x (h->x 0)            :y (h->x i))
+    (sdl:draw-line (sdl:point :x (h->x 0)                 :y (h->x i))
                    (sdl:point :x (h->x (1- *board-size*)) :y (h->x i))
                    :color sdl:*black*)
     ;; Horizontal lines:
