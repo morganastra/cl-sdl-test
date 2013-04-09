@@ -75,17 +75,19 @@
                           (round (/ scale 2))
                           :color (piece->color piece)))
 
-(defun draw-lines (scale board-size)
-  (dotimes (i board-size)
-    (sdl:draw-line (sdl:point :x (h->x 0) :y (h->x i))
-                   (sdl:point :x (h->x board-size) :y (h->x i *scale*))
+(defun draw-lines ()
+  (dotimes (i *board-size*)
+    ;; Vertical lines:
+    (sdl:draw-line (sdl:point :x (h->x 0)            :y (h->x i))
+                   (sdl:point :x (h->x (1- *board-size*)) :y (h->x i))
                    :color sdl:*black*)
-    (sdl:draw-line (sdl:point :x (h->x i *scale*) :y 0)
-                   (sdl:point :x (h->x i *scale*) :y *y-res*)
+    ;; Horizontal lines:
+    (sdl:draw-line (sdl:point :x (h->x i) :y (h->x 0))
+                   (sdl:point :x (h->x i) :y (h->x (1- *board-size*)))
                    :color sdl:*black*)))
 
 (defun draw-board (board)
-  (draw-lines *scale* *board-size*)
+  (draw-lines)
   (dotimes (h *board-size*)
     (dotimes (v *board-size*)
       (let ((piece (aref board h v)))
