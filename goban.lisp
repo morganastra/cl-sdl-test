@@ -15,6 +15,9 @@
 (defparameter *moves* '()
   "List of moves from beginning of the game.")
 
+(defparameter *groups* '()
+  "Association list mapping group id's to a list of member pieces.")
+
 ;;; Display parameters
 (defparameter *scale* 37 "Number of pixels per goban cell")
 
@@ -40,6 +43,21 @@
                       (case current
                         (black 'white)
                         (white 'black))))))
+
+(defun neighbors (h v)
+  "Given the coordinates of an intersection, return the coordinates of the
+neighboring intersections."
+  (remove-if (lambda (i) (or (member -1 i)
+                              (member 19 i)))
+             (list (list (1+ h) v)
+                   (list (1- h) v)
+                   (list h (1+ v))
+                   (list h (1- v)))))
+
+
+;; (defun count-group-liberties (h v)
+;;   "Count the liberties of the group that includes the piece at h v.")
+
 
 
 ;;; Transformations between game engine and SDL graphics layer.
