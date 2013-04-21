@@ -9,14 +9,12 @@
 ;;; Game engine parameters
 (defparameter *board-size* 19)
 
-(defparameter *board* (make-array (list *board-size* *board-size*) :initial-element nil)
+(defparameter *board*
+  (make-array (list *board-size* *board-size*) :initial-element nil)
   "Current board state.")
 
 (defparameter *moves* '()
   "List of moves from beginning of the game.")
-
-(defparameter *groups* '()
-  "Association list mapping group id's to a list of member pieces.")
 
 ;;; Display parameters
 (defparameter *scale* 37 "Number of pixels per goban cell")
@@ -44,7 +42,7 @@
                         (black 'white)
                         (white 'black))))))
 
-(defun neighbors (h v)
+(defun find-neighbors (h v)
   "Given the coordinates of an intersection, return the coordinates of the
 neighboring intersections."
   (remove-if (lambda (i) (or (member -1 i)
@@ -54,6 +52,21 @@ neighboring intersections."
                    (list h (1+ v))
                    (list h (1- v)))))
 
+
+(defun find-whole-group-containing (h v board)
+  "Given the coordinates of a stone, return a list of the coordinates of
+all stones in its group"
+  (let* ((color (aref board h v))
+         (group (list (list h v)))
+         (stack (remove-if-not ;; 
+                 (lambda (piece)
+                   (destructuring-bind (h v) piece
+                     (equal color (aref board h v))))
+                 (find-neighbors h v))))
+    (print color) ;DEBUG
+    (print group) ;DEBUG
+    (print stack) ;DEBUG
+    (mapcar (lambda ()) stack)))
 
 ;; (defun count-group-liberties (h v)
 ;;   "Count the liberties of the group that includes the piece at h v.")
@@ -72,8 +85,8 @@ neighboring intersections."
 (defun h->x (h &optional scale (offset 0))
   (let ((scale (or scale *scale*)))
     (+ offset
-       (round (+ (* h scale)     ;; This would go to the edge of the cell, so add
-                 (/ scale 2)))))) ;; half a cell to get to the middle.
+       (round (+ (* h scale)      ;; This would go to the edge of the cell, so
+                 (/ scale 2)))))) ;; add half a cell to get to the middle.
 
 (defun piece->color (piece)
   (case piece
