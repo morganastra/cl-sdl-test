@@ -24,6 +24,10 @@
 
 
 ;;; 
+(defun get-board-piece (board-pos board)
+  (destructuring-bind (h v) board-pos
+    (aref board h v)))
+
 (defun apply-move-to-board (move board)
   (destructuring-bind (piece h v) move 
       (setf (aref board h v) piece)))
@@ -42,18 +46,19 @@
                         (black 'white)
                         (white 'black))))))
 
-(defun find-neighbors (h v)
+(defun find-neighbors (board-pos)
   "Given the coordinates of an intersection, return the coordinates of the
 neighboring intersections."
-  (remove-if (lambda (i) (or (member -1 i)
-                              (member 19 i)))
-             (list (list (1+ h) v)
-                   (list (1- h) v)
-                   (list h (1+ v))
-                   (list h (1- v)))))
+  (destructuring-bind (h v) board-pos
+    (remove-if (lambda (i) (or (member -1 i)
+                               (member 19 i)))
+               (list (list (1+ h) v)
+                     (list (1- h) v)
+                     (list h (1+ v))
+                     (list h (1- v))))))
 
 
-(defun find-whole-group-containing (h v board)
+(defun find-whole-group-containing (board-pos board)
   "Given the coordinates of a stone, return a list of the coordinates of
 all stones in its group"
   (let* ((color (aref board h v))
@@ -98,6 +103,8 @@ all stones in its group"
   (case piece
     (black sdl:*black*)
     (white sdl:*white*)))
+
+
 
 ;;; SDL Input handling functions
 (defun handle-button-press (button x y)
