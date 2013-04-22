@@ -75,18 +75,24 @@ all stones in its group"
 
 ;;; Transformations between game engine and SDL graphics layer.
 ;;;
-;;; Graphics layer coordinates are called x and y. Goban coordinates are called
-;;; h and v (for horizontal and vertical).
-(defun x->h (x &optional scale (offset 0))
-  (let ((scale (or scale *scale*))
-        (offset-x (- x offset)))
-    (floor offset-x scale)))
+;;; Graphics layer coordinates are called x and y. Goban coordinates are
+;;; called h and v (for horizontal and vertical).
+(defun xy->board-pos (x y &optional (scale *scale*) (x-offset 0) (y-offset 0))
+  (defun x->h (x offset)
+    (let ((relative-x (- x offset)))
+      (floor relative-x scale)))
+  (list (x->h x x-offset)
+        (x->h y y-offset)))
 
-(defun h->x (h &optional scale (offset 0))
-  (let ((scale (or scale *scale*)))
+(defun board-pos->xy (board-pos &optional (scale *scale*)
+                                  (x-offset 0) (y-offset 0))
+  (defun h->x (h offset)
     (+ offset
-       (round (+ (* h scale)      ;; This would go to the edge of the cell, so
-                 (/ scale 2)))))) ;; add half a cell to get to the middle.
+       (round (+ (* h scale)      ;; This would go to the edge of the cell,
+                 (/ scale 2)))))  ;; so add half a cell to get to the middle.
+  (destructuring-bind (h v) board-pos
+    (list (h->x h x-offset)
+          (h->x v y-offset)))) 
 
 (defun piece->color (piece)
   (case piece
