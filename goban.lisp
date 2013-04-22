@@ -25,6 +25,7 @@
 
 ;;; 
 (defun get-piece-color (location board)
+  "Get the piece symbol at a given location on the board."
   (destructuring-bind (h v) location
     (aref board h v)))
 
@@ -33,6 +34,8 @@
       (setf (aref board h v) piece)))
 
 (defun move-if-possible (location board moves)
+  "Place a piece at location on board (updating the moves list as appropriate),
+unless there is already a piece occupying that location."
   (if (not (get-piece-color location board))
       (progn
         (push (list (who-goes-this-turn) location)
@@ -61,12 +64,12 @@ neighboring intersections."
 (defun find-whole-group-containing (location board)
   "Given the coordinates of a stone, return a list of the coordinates of
 all stones in its group"
+  ;; Dear future me, the reference to color in the lambda down there is
+  ;; why we had to use let* instead of let
   (let* ((color (get-piece-color location board))
          (group '(location))
          (stack (remove-if-not  
                  (lambda (l) 
-                   ;; The reference to color in this lambda is why we had to 
-                   ;; use let* instead of let
                    (equal color (get-piece-color l board)))
                  (find-neighbors location))))
     (print color) ;DEBUG
@@ -80,8 +83,10 @@ all stones in its group"
 ;;; Transformations between game engine and SDL graphics layer.
 ;;;
 ;;; Graphics layer coordinates are called x and y. Goban coordinates are
-;;; called h and v (for horizontal and vertical).
+;;; called h and v (for horizontal and vertical), but should be passed around
+;;; as a pair canonically referred to as location.
 (defun xy->location (x y &optional (scale *scale*) (x-offset 0) (y-offset 0))
+  "Transform SDL x and y coordinates into an (h v) location pair."
   (defun x->h (x offset)
     (let ((relative-x (- x offset)))
       (floor relative-x scale)))
@@ -90,6 +95,7 @@ all stones in its group"
 
 (defun location->xy (location &optional (scale *scale*)
                                   (x-offset 0) (y-offset 0))
+  "Transform a location (h v) pair into SDL x and y coordinates."
   (defun h->x (h offset)
     (+ offset
        (round (+ (* h scale)      ;; This would go to the edge of the cell,
@@ -99,6 +105,7 @@ all stones in its group"
           (h->x v y-offset)))) 
 
 (defun piece-color->sdl-color (piece-symbol)
+  "Get the SDL color value associated with a game piece color."
   (case piece-symbol
     (black sdl:*black*)
     (white sdl:*white*)))
@@ -113,6 +120,7 @@ all stones in its group"
 
 ;;; SDL drawing functions
 (defun draw-piece (location scale)
+  "Draw the piece at location on the board."
   (destructuring-bind (x y) (location->xy location scale)
     (sdl:draw-filled-circle (sdl:point :x x 
                                        :y y)
@@ -136,12 +144,13 @@ all stones in its group"
                        :color sdl:*black*)))))
 
 (defun draw-board (board)
+  "Draw everything."
   (draw-lines)
   (dotimes (h *board-size*)
     (dotimes (v *board-size*)
-      (let ((piece (aref board h v)))
+      (let ((piece (get-piece-color (list h v) board)))
         (if piece
-            (draw-piece piece h v *scale*))))))
+            (draw-piece piece location *scale*))))))
 
 
 
