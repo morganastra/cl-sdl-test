@@ -24,18 +24,18 @@
 
 
 ;;; 
-(defun get-board-piece (board-pos board)
-  (destructuring-bind (h v) board-pos
+(defun get-piece-color (location board)
+  (destructuring-bind (h v) location
     (aref board h v)))
 
 (defun apply-move-to-board (move board)
-  (destructuring-bind (piece h v) move 
+  (destructuring-bind (piece (h v)) move 
       (setf (aref board h v) piece)))
 
-(defun move-if-possible (h v board moves)
-  (if (not (aref board h v))
+(defun move-if-possible (location board moves)
+  (if (not (get-piece-color location board))
       (progn
-        (push (list (who-goes-this-turn) h v)
+        (push (list (who-goes-this-turn) location)
               moves)
         (apply-move-to-board (car moves) board))))
 
@@ -46,10 +46,10 @@
                         (black 'white)
                         (white 'black))))))
 
-(defun find-neighbors (board-pos)
+(defun find-neighbors (location)
   "Given the coordinates of an intersection, return the coordinates of the
 neighboring intersections."
-  (destructuring-bind (h v) board-pos
+  (destructuring-bind (h v) location
     (remove-if (lambda (i) (or (member -1 i)
                                (member 19 i)))
                (list (list (1+ h) v)
@@ -58,77 +58,82 @@ neighboring intersections."
                      (list h (1- v))))))
 
 
-(defun find-whole-group-containing (board-pos board)
+(defun find-whole-group-containing (location board)
   "Given the coordinates of a stone, return a list of the coordinates of
 all stones in its group"
-  (let* ((color (aref board h v))
-         (group (list (list h v)))
-         (stack (remove-if-not ;; 
-                 (lambda (piece)
-                   (destructuring-bind (h v) piece
-                     (equal color (aref board h v))))
-                 (find-neighbors h v))))
+  (let* ((color (get-piece-color location board))
+         (group '(location))
+         (stack (remove-if-not  
+                 (lambda (l) 
+                   ;; The reference to color in this lambda is why we had to 
+                   ;; use let* instead of let
+                   (equal color (get-piece-color l board)))
+                 (find-neighbors location))))
     (print color) ;DEBUG
     (print group) ;DEBUG
     (print stack) ;DEBUG
-    (mapcar (lambda ()) stack)))
-
-;; (defun count-group-liberties (h v)
-;;   "Count the liberties of the group that includes the piece at h v.")
+    (mapcar (lambda ()) stack))) ;; Recurse onto each piece on the stack
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Transformations between game engine and SDL graphics layer.
 ;;;
 ;;; Graphics layer coordinates are called x and y. Goban coordinates are
 ;;; called h and v (for horizontal and vertical).
-(defun xy->board-pos (x y &optional (scale *scale*) (x-offset 0) (y-offset 0))
+(defun xy->location (x y &optional (scale *scale*) (x-offset 0) (y-offset 0))
   (defun x->h (x offset)
     (let ((relative-x (- x offset)))
       (floor relative-x scale)))
   (list (x->h x x-offset)
         (x->h y y-offset)))
 
-(defun board-pos->xy (board-pos &optional (scale *scale*)
+(defun location->xy (location &optional (scale *scale*)
                                   (x-offset 0) (y-offset 0))
   (defun h->x (h offset)
     (+ offset
        (round (+ (* h scale)      ;; This would go to the edge of the cell,
                  (/ scale 2)))))  ;; so add half a cell to get to the middle.
-  (destructuring-bind (h v) board-pos
+  (destructuring-bind (h v) location
     (list (h->x h x-offset)
           (h->x v y-offset)))) 
 
-(defun piece->color (piece)
-  (case piece
+(defun piece-color->sdl-color (piece-symbol)
+  (case piece-symbol
     (black sdl:*black*)
     (white sdl:*white*)))
 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; SDL stuff!
 ;;; SDL Input handling functions
 (defun handle-button-press (button x y)
-  (let ((h (x->h x *scale*))
-        (v (x->h y *scale*)))
-    (move-if-possible h v *board* *moves*)))
+  (if (equalp button sdl:sdl-button-left)
+      (move-if-possible (xy->location x y) *board* *moves*)))
 
 ;;; SDL drawing functions
-(defun draw-piece (piece h v scale)
-  (sdl:draw-filled-circle (sdl:point :x (h->x h scale)
-                                     :y (h->x v scale))
-                          (floor scale 2)
-                          :color (piece->color piece)))
+(defun draw-piece (location scale)
+  (destructuring-bind (x y) (location->xy location scale)
+    (sdl:draw-filled-circle (sdl:point :x x 
+                                       :y y)
+                            (floor scale 2)
+                            :color (piece-color->sdl-color
+                                    (get-piece-color location *board*)))))
 
 (defun draw-lines ()
-  (dotimes (i *board-size*)
-    ;; Vertical lines:
-    (sdl:draw-line (sdl:point :x (h->x 0)                 :y (h->x i))
-                   (sdl:point :x (h->x (1- *board-size*)) :y (h->x i))
-                   :color sdl:*black*)
-    ;; Horizontal lines:
-    (sdl:draw-line (sdl:point :x (h->x i) :y (h->x 0))
-                   (sdl:point :x (h->x i) :y (h->x (1- *board-size*)))
-                   :color sdl:*black*)))
+  (destructuring-bind ((x-min y-min) (x-max y-max))
+      (list (location->xy (list 0 0))
+            (location->xy (list *board-size* *board-size*)))
+    (dotimes (i *board-size*)
+      (destructuring-bind (x y) (location-xy (list i i))
+        ;; Vertical lines:
+        (sdl:draw-line (sdl:point :x x-min :y x)
+                       (sdl:point :x x-max :y x)
+                       :color sdl:*black*)
+        ;; Horizontal lines:
+        (sdl:draw-line (sdl:point :x y :y y-min)
+                       (sdl:point :x y :y y-max)
+                       :color sdl:*black*)))))
 
 (defun draw-board (board)
   (draw-lines)
@@ -137,7 +142,6 @@ all stones in its group"
       (let ((piece (aref board h v)))
         (if piece
             (draw-piece piece h v *scale*))))))
-
 
 
 
