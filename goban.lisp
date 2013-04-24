@@ -66,16 +66,18 @@ neighboring intersections."
 all stones in its group"
   ;; Dear future me, the reference to color in the lambda down there is
   ;; why we had to use let* instead of let
-  (let* ((color (get-piece-color location board))
-         (group '(location))
-         (stack (remove-if-not  
-                 (lambda (l) 
-                   (equal color (get-piece-color l board)))
-                 (find-neighbors location))))
-    (print color) ;DEBUG
-    (print group) ;DEBUG
-    (print stack) ;DEBUG
-    (mapcar (lambda ()) stack))) ;; Recurse onto each piece on the stack
+  ;; (let* ((color (get-piece-color location board))
+  ;;        (group '(location))
+  ;;        (stack (remove-if-not  
+  ;;                #'(lambda (loc) 
+  ;;                    (equal color (get-piece-color loc board)))
+  ;;                (find-neighbors location))))
+  (let ((color (get-piece-color location board))
+        (group '())
+        (stack '()))
+    (defun recur (loc)
+      )
+    (recur location))
 
 
 
@@ -174,3 +176,39 @@ all stones in its group"
 
 (defun run-goban ()
   (go-game-window *x-res* *y-res*))
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Experimental group-based code
+
+
+;;; A piece is a length-three list of the form (color h v), where color is
+;;; either 'black or 'white and h and v are numbers.
+;;; A group is a list of adjacent pieces. They must all have the same color.
+;;; The *groups* parameter is a list of groups.
+(defparameter *groups* '())
+
+(defun unnest (list)
+  "Remove one level of nesting from a nested list."
+  (loop for elt in list appending elt))
+
+(defun piece-at-location (location groups)
+  "Return the piece at location, or nil if there is not one."
+  (find location (unnest groups) :test #'equalp :key #'cdr))
+
+(defun location-in-group (location group)
+  "Test whether a group contains a piece at the given location"
+  (find location group :test #'equalp :key #'cdr))
+
+(defun group-at-location (location groups)
+  "Return the group containing a piece at the given location, or nil if there
+is not a piece there."
+  (find-if #'(lambda (group) (location-in-group location group)) groups))
+
+(defun get-group-adjacencies (group)
+  "Return a list of the locations adjacent to a given group."
+  (remove-dupicates ))
+
+(defun count-group-liberties (group groups))
