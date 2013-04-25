@@ -33,53 +33,12 @@
   (destructuring-bind (piece (h v)) move 
       (setf (aref board h v) piece)))
 
-(defun move-if-possible (location board moves)
-  "Place a piece at location on board (updating the moves list as appropriate),
-unless there is already a piece occupying that location."
-  (if (not (get-piece-color location board))
-      (progn
-        (push (list (who-goes-this-turn) location)
-              moves)
-        (apply-move-to-board (car moves) board))))
-
 (let ((current 'black))
   (defun who-goes-this-turn (&optional who)
     (setf current (or who
                       (case current
                         (black 'white)
                         (white 'black))))))
-
-(defun find-neighbors (location)
-  "Given the coordinates of an intersection, return the coordinates of the
-neighboring intersections."
-  (destructuring-bind (h v) location
-    (remove-if (lambda (i) (or (member -1 i)
-                               (member 19 i)))
-               (list (list (1+ h) v)
-                     (list (1- h) v)
-                     (list h (1+ v))
-                     (list h (1- v))))))
-
-
-(defun find-whole-group-containing (location board)
-  "Given the coordinates of a stone, return a list of the coordinates of
-all stones in its group"
-  ;; Dear future me, the reference to color in the lambda down there is
-  ;; why we had to use let* instead of let
-  ;; (let* ((color (get-piece-color location board))
-  ;;        (group '(location))
-  ;;        (stack (remove-if-not  
-  ;;                #'(lambda (loc) 
-  ;;                    (equal color (get-piece-color loc board)))
-  ;;                (find-neighbors location))))
-  (let ((color (get-piece-color location board))
-        (group '())
-        (stack '()))
-    (defun recur (loc)
-      )
-    (recur location))
-
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Transformations between game engine and SDL graphics layer.
@@ -194,7 +153,7 @@ all stones in its group"
   "Remove one level of nesting from a nested list."
   (loop for elt in list appending elt))
 
-(defun piece-at-location (location groups)
+(defun get-piece-at-location (location groups)
   "Return the piece at location, or nil if there is not one."
   (find location (unnest groups) :test #'equalp :key #'cdr))
 
@@ -202,13 +161,59 @@ all stones in its group"
   "Test whether a group contains a piece at the given location"
   (find location group :test #'equalp :key #'cdr))
 
-(defun group-at-location (location groups)
+(defun get-group-at-location (location groups)
   "Return the group containing a piece at the given location, or nil if there
 is not a piece there."
-  (find-if #'(lambda (group) (location-in-group location group)) groups))
+  (find-if #'(lambda (group)
+               (location-in-group location group))
+           groups))
+
+(defun move-if-possible (piece groups)
+  ""
+  (destructuring-bind (color . loc) piece
+    (if (not (get-piece-at-location loc groups))
+        (push (combine-groups
+               color
+               (mapcar #'(lambda (loc*)
+                           (get-group-at-location loc* groups))
+                       (find-neighbors loc)))
+         groups))))
+
+(defun combine-groups (color list-of-groups)
+  "Combine groups of a given color."
+  (reduce #'union
+          (remove-if #'(lambda (group-color)
+                         (not (equalp color group-color)))
+                     list-of-groups
+                     :key #'caar)))
+
+
+
+
+
 
 (defun get-group-adjacencies (group)
-  "Return a list of the locations adjacent to a given group."
-  (remove-dupicates ))
+  "Return the set of locations adjacent to a given group."
+  )
 
-(defun count-group-liberties (group groups))
+
+
+(defun count-group-liberties (group groups)
+  "Return the number of liberties the given group has.")
+
+(defun pretty-print-board (groups)
+  ""
+  ) 
+  
+
+(defun find-neighbors (location)
+  "Given the coordinates of an intersection, return the coordinates of the
+neighboring intersections."
+  (destructuring-bind (h v) location
+    (remove-if (lambda (i) (or (member -1 i)
+                               (member 19 i)))
+               (list (list (1+ h) v)
+                     (list (1- h) v)
+                     (list h (1+ v))
+                     (list h (1- v))))))
+
